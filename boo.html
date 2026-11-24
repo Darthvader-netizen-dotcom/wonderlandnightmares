@@ -1,0 +1,2204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>THE LAST ROUND — Wonderland Playhouse</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #060505;
+    color: #c8bfa8;
+    font-family: "Courier New", Courier, monospace;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #frame {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    max-width: 177.78vh;
+    max-height: 56.25vw;
+    background: #080707;
+    box-shadow: 0 0 70px #000;
+    overflow: hidden;
+  }
+  canvas#view {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    cursor: crosshair;
+  }
+  #crt {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at center, transparent 54%, rgba(0,0,0,0.74) 100%),
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px);
+    z-index: 4;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(7, 6, 6, 0.94);
+    padding: 2rem;
+    text-align: center;
+    transition: opacity 0.5s ease;
+  }
+  .hidden { display: none !important; }
+  h1.title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.1rem, 4.8vw, 4.2rem);
+    letter-spacing: 0.28em;
+    color: #d6c89a;
+    text-shadow: 3px 3px 0 #261414, -1px -1px 0 #4a4028;
+    margin-bottom: 0.35rem;
+    font-weight: normal;
+  }
+  .subtitle {
+    font-size: clamp(0.74rem, 1.25vw, 0.92rem);
+    letter-spacing: 0.34em;
+    color: #8c7b65;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+  }
+  .jam-tag {
+    position: absolute;
+    top: 1.1rem;
+    left: 1.3rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    color: #6b6154;
+  }
+  .btn {
+    background: #171412;
+    color: #d6c89a;
+    border: 1px solid #594c3c;
+    padding: 0.8rem 2.1rem;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 0.96rem;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    margin: 0.4rem;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .btn:hover {
+    background: #29221c;
+    border-color: #b59d6b;
+    color: #fff3d1;
+  }
+  .intro-box {
+    max-width: 630px;
+    line-height: 1.72;
+    font-size: 0.93rem;
+    color: #bfb59e;
+    border-left: 2px solid #594c3c;
+    padding-left: 1.35rem;
+    text-align: left;
+    margin-bottom: 1.8rem;
+  }
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 0.45rem 1.8rem;
+    font-size: 0.79rem;
+    color: #8c816f;
+    margin-top: 1.5rem;
+    text-align: left;
+  }
+  .controls-grid span.key { color: #cbb98c; }
+  #audio-ui {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(12, 10, 10, 0.78);
+    border: 1px solid #383028;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    color: #9e917b;
+  }
+  #audio-ui button {
+    background: none;
+    border: 1px solid #4d4236;
+    color: #c7b899;
+    font-family: inherit;
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    cursor: pointer;
+  }
+  #audio-ui input[type="range"] {
+    width: 62px;
+    accent-color: #9c8454;
+    cursor: pointer;
+  }
+  #ending-box {
+    max-width: 650px;
+    line-height: 1.78;
+    color: #cfc4ad;
+  }
+  #ending-title {
+    font-family: Georgia, serif;
+    font-size: 1.85rem;
+    letter-spacing: 0.18em;
+    color: #d9c58f;
+    margin-bottom: 0.9rem;
+  }
+  #ending-stats {
+    margin: 1.4rem 0;
+    padding: 0.85rem;
+    border-top: 1px solid #3d342b;
+    border-bottom: 1px solid #3d342b;
+    font-size: 0.82rem;
+    color: #968973;
+  }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="view" width="640" height="360"></canvas>
+  <div id="crt"></div>
+
+  <div id="audio-ui">
+    <button id="mute-btn">SOUND: ON</button>
+    <input id="vol-slider" type="range" min="0" max="1" step="0.02" value="0.72" title="Master Volume">
+  </div>
+
+  <div id="title-screen" class="overlay">
+    <div class="jam-tag">HAVERN HARVEST JAM // THEME: BOUNCE BACK</div>
+    <h1 class="title">THE LAST ROUND</h1>
+    <div class="subtitle">Wonderland Playhouse &bull; Closed 1998</div>
+    <button class="btn" id="start-btn">ENTER PLAYHOUSE</button>
+    <div class="controls-grid">
+      <div><span class="key">[WASD / ARROWS]</span> Move</div>
+      <div><span class="key">[HOLD LMB / SPACE]</span> Aim &amp; Throw Ball</div>
+      <div><span class="key">[E]</span> Inspect / Interact</div>
+      <div><span class="key">[R]</span> Whistle / Recall Ball</div>
+      <div><span class="key">[F]</span> Pocket Flashlight</div>
+      <div><span class="key">[TAB]</span> Memos &amp; Clues</div>
+    </div>
+  </div>
+
+  <div id="intro-screen" class="overlay hidden">
+    <div class="intro-box">
+      <p>The rusted padlock on Wonderland Playhouse's side door snapped off three winters ago. You slipped inside after midnight to retrieve your younger brother's lost windbreaker from the prize counter—only for the steel shutter behind Reception to drop and bolt itself shut.</p>
+      <br>
+      <p>On the damp carpet beside the turnstile sits a heavy, scarred red rubber play-ball stamped <em>PROPERTY OF WONDERLAND</em>. Whenever you throw it down a hall, no matter the angle, it always finds a way back to your feet.</p>
+      <br>
+      <p style="color:#d6c89a;">Recover the three Brass Exit Tokens to unlatch the Reception Shutter—before the building finishes resetting for the night.</p>
+    </div>
+    <button class="btn" id="begin-btn">PICK UP THE BALL</button>
+  </div>
+
+  <div id="ending-screen" class="overlay hidden">
+    <div id="ending-box">
+      <div id="ending-title">ENDING</div>
+      <p id="ending-text"></p>
+      <div id="ending-stats"></div>
+      <button class="btn" id="replay-btn">PLAY AGAIN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // =========================================================================
+  // 1. HANDMADE LOW-RES PROCEDURAL TEXTURES (PS1 / Early PC Aesthetic)
+  // =========================================================================
+  let seed = 19981031;
+  function rand() {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+
+  function makeTex(w, h, drawFn) {
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    drawFn(g, w, h);
+    return c;
+  }
+
+  const TEX = {
+    carpet: makeTex(64, 64, (g, w, h) => {
+      g.fillStyle = "#191521";
+      g.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y += 2) {
+        for (let x = 0; x < w; x += 2) {
+          const n = rand();
+          g.fillStyle = n < 0.35 ? "#120f18" : n < 0.72 ? "#211b2b" : "#272030";
+          g.fillRect(x, y, 2, 2);
+        }
+      }
+      // Faded 90s geometric confetti specks
+      const specks = ["#473036", "#2a3b3e", "#463e24"];
+      for (let i = 0; i < 16; i++) {
+        g.fillStyle = specks[i % specks.length];
+        g.fillRect((rand() * 58) | 0, (rand() * 58) | 0, 3, 2);
+      }
+      // Damp stain
+      g.fillStyle = "rgba(8, 6, 7, 0.38)";
+      g.beginPath();
+      g.arc(38, 28, 15, 0, Math.PI * 2);
+      g.fill();
+    }),
+
+    tile: makeTex(64, 64, (g, w, h) => {
+      g.fillStyle = "#292621";
+      g.fillRect(0, 0, w, h);
+      g.fillStyle = "#201d19";
+      g.fillRect(0, 0, 32, 32);
+      g.fillRect(32, 32, 32, 32);
+      for (let i = 0; i < 95; i++) {
+        g.fillStyle = rand() > 0.5 ? "rgba(0,0,0,0.24)" : "rgba(95,88,72,0.08)";
+        g.fillRect((rand() * 64) | 0, (rand() * 64) | 0, 2, 2);
+      }
+      g.strokeStyle = "#12100e";
+      g.lineWidth = 1;
+      g.strokeRect(0.5, 0.5, 63, 63);
+      g.beginPath();
+      g.moveTo(32, 0); g.lineTo(32, 64);
+      g.moveTo(0, 32); g.lineTo(64, 32);
+      g.stroke();
+    }),
+
+    concrete: makeTex(64, 64, (g, w, h) => {
+      g.fillStyle = "#22211f";
+      g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 180; i++) {
+        const v = 24 + ((rand() * 17) | 0);
+        g.fillStyle = `rgb(${v},${v - 1},${v - 3})`;
+        g.fillRect((rand() * 64) | 0, (rand() * 64) | 0, 2, 2);
+      }
+      g.fillStyle = "rgba(68, 34, 20, 0.34)";
+      g.fillRect(14, 0, 3, 42);
+      g.fillRect(49, 12, 2, 52);
+    }),
+
+    wood: makeTex(64, 64, (g, w, h) => {
+      g.fillStyle = "#291c14";
+      g.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y += 8) {
+        g.fillStyle = y % 16 === 0 ? "#22160f" : "#2e2017";
+        g.fillRect(0, y, w, 7);
+        g.fillStyle = "#140c08";
+        g.fillRect(0, y + 7, w, 1);
+      }
+    }),
+
+    foam: makeTex(64, 64, (g, w, h) => {
+      g.fillStyle = "#1a242c";
+      g.fillRect(0, 0, w, h);
+      g.strokeStyle = "#12191f";
+      g.strokeRect(1, 1, 30, 30);
+      g.strokeRect(33, 1, 30, 30);
+      g.strokeRect(1, 33, 30, 30);
+      g.strokeRect(33, 33, 30, 30);
+      g.fillStyle = "rgba(10,12,14,0.38)";
+      g.fillRect(10, 14, 12, 4);
+      g.fillRect(42, 45, 9, 5);
+    })
+  };
+
+  // =========================================================================
+  // 2. WEB AUDIO ENGINE — DETUNED MUSIC BOX, PIANO, DRONES & SPATIAL FOLEY
+  // =========================================================================
+  class SoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.master = null;
+      this.muted = false;
+      this.volume = 0.72;
+      this.started = false;
+      this.droneOsc1 = null;
+      this.droneOsc2 = null;
+      this.droneGain = null;
+      this.humOsc = null;
+      this.humGain = null;
+      this.stepTimer = 1.2;
+      this.pianoTimer = 4.5;
+      this.noteIndex = 0;
+      this.silenceTimer = 0;
+      // Original asymmetric 7-beat lullaby motif in D harmonic/melodic minor
+      this.melody = [
+        293.66, 349.23, 440.00, 415.30, 349.23, 329.63, 277.18,
+        293.66, 0,      349.23, 466.16, 440.00, 329.63, 261.63,
+        277.18, 293.66, 0,      220.00, 277.18, 293.66, 0
+      ];
+      this.pianoNotes = [146.83, 155.56, 138.59, 110.00, 174.61, 130.81];
+    }
+
+    init() {
+      if (this.started) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : this.volume;
+      this.master.connect(this.ctx.destination);
+
+      // Deep architectural drone
+      this.droneGain = this.ctx.createGain();
+      this.droneGain.gain.value = 0.05;
+      const droneFilter = this.ctx.createBiquadFilter();
+      droneFilter.type = "lowpass";
+      droneFilter.frequency.value = 130;
+
+      this.droneOsc1 = this.ctx.createOscillator();
+      this.droneOsc1.type = "sawtooth";
+      this.droneOsc1.frequency.value = 55.0;
+
+      this.droneOsc2 = this.ctx.createOscillator();
+      this.droneOsc2.type = "triangle";
+      this.droneOsc2.frequency.value = 58.27;
+
+      this.droneOsc1.connect(droneFilter);
+      this.droneOsc2.connect(droneFilter);
+      droneFilter.connect(this.droneGain);
+      this.droneGain.connect(this.master);
+      this.droneOsc1.start();
+      this.droneOsc2.start();
+
+      // Fluorescent ballast hum
+      this.humOsc = this.ctx.createOscillator();
+      this.humOsc.type = "sine";
+      this.humOsc.frequency.value = 120;
+      this.humGain = this.ctx.createGain();
+      this.humGain.gain.value = 0.012;
+      this.humOsc.connect(this.humGain);
+      this.humGain.connect(this.master);
+      this.humOsc.start();
+
+      this.started = true;
+    }
+
+    setVolume(v) {
+      this.volume = parseFloat(v);
+      if (this.master && !this.muted) {
+        this.master.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.04);
+      }
+    }
+
+    toggleMute() {
+      this.muted = !this.muted;
+      if (this.master) {
+        this.master.gain.setTargetAtTime(this.muted ? 0 : this.volume, this.ctx.currentTime, 0.04);
+      }
+      return this.muted;
+    }
+
+    triggerSilence(sec) {
+      this.silenceTimer = Math.max(this.silenceTimer, sec);
+    }
+
+    update(dt, tension, roomId, shiftProgress) {
+      if (!this.started || !this.ctx) return;
+      if (this.ctx.state === "suspended") this.ctx.resume();
+
+      const now = this.ctx.currentTime;
+      if (this.silenceTimer > 0) {
+        this.silenceTimer -= dt;
+        this.droneGain.gain.setTargetAtTime(0.001, now, 0.12);
+        this.humGain.gain.setTargetAtTime(0.0, now, 0.08);
+        return;
+      }
+
+      const targetDrone = 0.042 + tension * 0.075 + shiftProgress * 0.035;
+      this.droneGain.gain.setTargetAtTime(targetDrone, now, 0.45);
+      this.droneOsc2.frequency.setTargetAtTime(58.27 + tension * 2.6, now, 0.6);
+
+      const targetHum = (roomId === "corridor" || roomId === "arcade") ? 0.022 : 0.008;
+      this.humGain.gain.setTargetAtTime(targetHum, now, 0.3);
+
+      // Sparse detuned music box motif
+      this.stepTimer -= dt;
+      if (this.stepTimer <= 0) {
+        const tempo = Math.max(0.44, 0.74 - tension * 0.16);
+        this.stepTimer = tempo;
+        const freq = this.melody[this.noteIndex % this.melody.length];
+        this.noteIndex++;
+
+        const playChance = (roomId === "stage" || roomId === "birthday" || roomId === "prize") ? 0.85 : 0.38;
+        if (freq > 0 && Math.random() < playChance) {
+          this.playMusicBoxNote(freq, tension);
+        }
+        if (this.noteIndex % this.melody.length === 0) {
+          this.stepTimer += 4.0 + Math.random() * 5.0; // Long unsettling silence gap
+        }
+      }
+
+      // Occasional low dissonant piano strike when tension rises
+      this.pianoTimer -= dt;
+      if (this.pianoTimer <= 0) {
+        this.pianoTimer = 7.5 + Math.random() * 8.0;
+        if (tension > 0.25 || shiftProgress > 0.2) {
+          const pFreq = this.pianoNotes[(Math.random() * this.pianoNotes.length) | 0];
+          this.playPianoNote(pFreq, tension);
+        }
+      }
+    }
+
+    playMusicBoxNote(baseFreq, tension) {
+      if (!this.started) return;
+      const now = this.ctx.currentTime;
+      const detune = (Math.random() - 0.5) * (15 + tension * 30);
+      const osc = this.ctx.createOscillator();
+      const overtone = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.detune.setValueAtTime(detune, now);
+
+      overtone.type = "triangle";
+      overtone.frequency.setValueAtTime(baseFreq * 2.004, now);
+      overtone.detune.setValueAtTime(-detune * 1.4, now);
+
+      const overGain = this.ctx.createGain();
+      overGain.gain.value = 0.16;
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.042, now + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.45);
+
+      osc.connect(gain);
+      overtone.connect(overGain);
+      overGain.connect(gain);
+      gain.connect(this.master);
+
+      osc.start(now);
+      overtone.start(now);
+      osc.stop(now + 1.5);
+      overtone.stop(now + 1.5);
+    }
+
+    playPianoNote(freq, tension) {
+      if (!this.started) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const sub = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime((Math.random() - 0.5) * (12 + tension * 20), now);
+
+      sub.type = "sine";
+      sub.frequency.setValueAtTime(freq * 0.5, now);
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(520, now);
+      filter.frequency.exponentialRampToValueAtTime(140, now + 2.4);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.065, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.6);
+
+      osc.connect(filter);
+      sub.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.master);
+
+      osc.start(now);
+      sub.start(now);
+      osc.stop(now + 2.65);
+      sub.stop(now + 2.65);
+    }
+
+    playBounce(speedRatio, material = "rubber", pan = 0) {
+      if (!this.started) return;
+      const now = this.ctx.currentTime;
+      const amp = Math.min(0.32, Math.max(0.03, speedRatio * 0.28));
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const panner = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+
+      if (material === "metal") {
+        osc.type = "square";
+        osc.frequency.setValueAtTime(195 + speedRatio * 90, now);
+        osc.frequency.exponentialRampToValueAtTime(72, now + 0.15);
+      } else {
+        osc.type = "sine";
+        const startF = 112 + speedRatio * 76;
+        osc.frequency.setValueAtTime(startF, now);
+        osc.frequency.exponentialRampToValueAtTime(startF * 1.46, now + 0.035);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.16);
+      }
+
+      gain.gain.setValueAtTime(amp, now);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.19);
+
+      if (panner) {
+        panner.pan.value = Math.max(-1, Math.min(1, pan));
+        osc.connect(gain);
+        gain.connect(panner);
+        panner.connect(this.master);
+      } else {
+        osc.connect(gain);
+        gain.connect(this.master);
+      }
+
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+
+    playFootstep(surface = "carpet", remote = false, pan = 0) {
+      if (!this.started) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = surface === "tile" ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(surface === "tile" ? 128 : 76, now);
+      osc.frequency.exponentialRampToValueAtTime(34, now + 0.07);
+
+      filter.type = "lowpass";
+      filter.frequency.value = remote ? 210 : 480;
+
+      const vol = remote ? 0.055 : 0.03;
+      gain.gain.setValueAtTime(vol, now);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.08);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      if (this.ctx.createStereoPanner) {
+        const p = this.ctx.createStereoPanner();
+        p.pan.value = Math.max(-1, Math.min(1, pan));
+        gain.connect(p);
+        p.connect(this.master);
+      } else {
+        gain.connect(this.master);
+      }
+      osc.start(now);
+      osc.stop(now + 0.09);
+    }
+
+    playMascotSound(type, pan = 0) {
+      if (!this.started) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      if (type === "bobble") {
+        // Hollow plastic shell creak
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.linearRampToValueAtTime(62, now + 0.25);
+        osc.frequency.linearRampToValueAtTime(79, now + 0.45);
+        gain.gain.setValueAtTime(0.048, now);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.48);
+      } else if (type === "ribbon") {
+        // Broken party reed sigh
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(311, now);
+        osc.frequency.exponentialRampToValueAtTime(192, now + 0.65);
+        gain.gain.setValueAtTime(0.038, now);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.68);
+      } else {
+        // The Returner: rhythmic rubber snap + low sub thump
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(52, now);
+        osc.frequency.exponentialRampToValueAtTime(148, now + 0.09);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.35);
+        gain.gain.setValueAtTime(0.088, now);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.36);
+      }
+
+      if (this.ctx.createStereoPanner) {
+        const p = this.ctx.createStereoPanner();
+        p.pan.value = Math.max(-1, Math.min(1, pan));
+        osc.connect(gain);
+        gain.connect(p);
+        p.connect(this.master);
+      } else {
+        osc.connect(gain);
+        gain.connect(this.master);
+      }
+      osc.start(now);
+      osc.stop(now + 0.72);
+    }
+
+    playMechClunk() {
+      if (!this.started) return;
+      const now = this.ctx.currentTime;
+      [110, 146.8, 220].forEach((f, idx) => {
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        o.type = "square";
+        o.frequency.setValueAtTime(f, now + idx * 0.07);
+        o.frequency.exponentialRampToValueAtTime(f * 0.5, now + idx * 0.07 + 0.18);
+        g.gain.setValueAtTime(0.06, now + idx * 0.07);
+        g.gain.exponentialRampToValueAtTime(0.0008, now + idx * 0.07 + 0.2);
+        o.connect(g); g.connect(this.master);
+        o.start(now + idx * 0.07);
+        o.stop(now + idx * 0.07 + 0.22);
+      });
+    }
+  }
+
+  const audio = new SoundEngine();
+
+  // =========================================================================
+  // 3. WORLD GEOMETRY — 8 INTERCONNECTED AREAS OF WONDERLAND PLAYHOUSE
+  // =========================================================================
+  const ROOMS = [
+    { id: "reception",  name: "1. RECEPTION & TURNSTILE",    x: 640,  y: 760, w: 360, h: 280, floor: "tile",     light: 0.76 },
+    { id: "arcade",     name: "2. THE ARCADE",               x: 240,  y: 660, w: 400, h: 340, floor: "carpet",   light: 0.60 },
+    { id: "prize",      name: "8. PRIZE COUNTER",            x: 240,  y: 420, w: 320, h: 240, floor: "carpet",   light: 0.54 },
+    { id: "ballpit",    name: "3. SUNKEN BALL PIT",          x: 640,  y: 440, w: 360, h: 320, floor: "foam",     light: 0.64 },
+    { id: "birthday",   name: "4. BIRTHDAY PARTY ROOM",      x: 1000, y: 660, w: 380, h: 320, floor: "tile",     light: 0.70 },
+    { id: "stage",      name: "5. MASCOT SHOW STAGE",        x: 1000, y: 340, w: 380, h: 320, floor: "wood",     light: 0.56 },
+    { id: "playground", name: "6. INDOOR PLAYGROUND",        x: 600,  y: 120, w: 400, h: 320, floor: "foam",     light: 0.50 },
+    { id: "corridor",   name: "7. MAINTENANCE CORRIDOR",     x: 1000, y: 120, w: 340, h: 220, floor: "concrete", light: 0.34 }
+  ];
+
+  const WALLS = [
+    // Outer perimeter
+    { x: 220, y: 100, w: 1180, h: 20 },
+    { x: 220, y: 100, w: 20,   h: 960 },
+    { x: 220, y: 1040, w: 800, h: 20 },
+    { x: 1000, y: 980, w: 400, h: 20 },
+    { x: 1380, y: 340, w: 20,  h: 660 },
+    { x: 1340, y: 100, w: 20,  h: 240 },
+    { x: 1340, y: 320, w: 60,  h: 20 },
+
+    // Reception <-> Arcade (doorway y: 790..870)
+    { x: 630, y: 760, w: 20, h: 35 },
+    { x: 630, y: 870, w: 20, h: 170 },
+
+    // Reception <-> Ball Pit (doorway x: 775..865)
+    { x: 640, y: 750, w: 135, h: 20 },
+    { x: 865, y: 750, w: 145, h: 20 },
+
+    // Reception <-> Birthday (doorway y: 800..885)
+    { x: 990, y: 760, w: 20, h: 40 },
+    { x: 990, y: 885, w: 20, h: 100 },
+
+    // Arcade <-> Prize Room (doorway x: 350..440)
+    { x: 240, y: 650, w: 110, h: 20 },
+    { x: 440, y: 650, w: 200, h: 20 },
+
+    // Prize Room <-> Ball Pit (doorway y: 500..575)
+    { x: 550, y: 420, w: 20, h: 80 },
+    { x: 550, y: 575, w: 20, h: 85 },
+    { x: 570, y: 420, w: 70, h: 20 },
+
+    // Ball Pit <-> Stage (doorway y: 480..565)
+    { x: 990, y: 440, w: 20, h: 40 },
+    { x: 990, y: 565, w: 20, h: 195 },
+
+    // Birthday <-> Stage (curtain opening x: 1120..1240)
+    { x: 1000, y: 650, w: 120, h: 20 },
+    { x: 1240, y: 650, w: 140, h: 20 },
+
+    // Ball Pit <-> Playground (doorway x: 760..850)
+    { x: 630, y: 430, w: 130, h: 20 },
+    { x: 850, y: 430, w: 150, h: 20 },
+    { x: 590, y: 120, w: 20, h: 310 },
+
+    // Playground <-> Maintenance Corridor (doorway y: 185..265)
+    { x: 990, y: 120, w: 20, h: 65 },
+    { x: 990, y: 265, w: 20, h: 175 },
+
+    // Stage <-> Maintenance Corridor (doorway x: 1130..1210)
+    { x: 1000, y: 330, w: 130, h: 20 },
+    { x: 1210, y: 330, w: 140, h: 20 }
+  ];
+
+  const PROPS = [
+    { id: "exit_shutter", x: 765, y: 1034, w: 110, h: 16, solid: true, type: "shutter",
+      text: "Heavy steel exit shutter. Three brass keyhole slots sit beside the manual chain." },
+    { id: "front_desk", x: 675, y: 890, w: 95, h: 42, solid: true, type: "desk",
+      text: "Reception counter. A damp guestbook lies open to October 31, 1998. Every signature is in the same child's handwriting." },
+    { id: "photo_wall", x: 930, y: 772, w: 54, h: 12, solid: false, type: "photo",
+      text: "Staff Polaroid board. All the faces have been scratched out with a key—except one empty corner." },
+
+    { id: "cab_1", x: 265, y: 700, w: 38, h: 46, solid: true, type: "arcade",
+      text: "CABINET #01: 'BOUNCE & SCORE'. Screen dead, coin return jammed with dried chewing gum." },
+    { id: "cab_2", x: 265, y: 765, w: 38, h: 46, solid: true, type: "arcade",
+      text: "CABINET #02: Glass smashed inward. Something heavy bounced out from inside the CRT." },
+    { id: "cab_3", x: 265, y: 830, w: 38, h: 46, solid: true, type: "arcade",
+      text: "CABINET #03: High score table reads: 'RTR - 999999', 'RTR - 999999', 'RTR - 999999'." },
+    { id: "cab_4", x: 430, y: 950, w: 46, h: 38, solid: true, type: "arcade",
+      text: "Skeeball alley. The wooden ramp is warped, and the ball return chute is stuffed with yellow fabric." },
+
+    { id: "prize_counter", x: 265, y: 525, w: 185, h: 34, solid: true, type: "counter",
+      text: "Behind the cracked glass sits a boy's blue windbreaker—and a tarnished Brass Exit Token." },
+    { id: "prize_gate", x: 450, y: 525, w: 100, h: 16, solid: true, type: "gate",
+      text: "Security grille locking the Prize Counter. Needs a magnetic release from the wall sensor." },
+
+    { id: "ballpit_basin", x: 695, y: 500, w: 240, h: 190, solid: false, type: "ballpit",
+      text: "Thousands of sun-bleached plastic balls. Beneath the surface, something shifts when you throw yours." },
+
+    { id: "bday_table1", x: 1065, y: 745, w: 110, h: 42, solid: true, type: "table",
+      text: "Long party table. Seven melted wax candles stand in petrified frosting. Nobody ate a slice." },
+    { id: "bday_table2", x: 1210, y: 845, w: 110, h: 42, solid: true, type: "table",
+      text: "Faded paper hats and a torn banner: 'HAPPY BIRTHDAY — ONE MORE ROUND!'" },
+
+    { id: "stage_platform", x: 1055, y: 365, w: 270, h: 95, solid: false, type: "stage",
+      text: "Creaking plywood stage. Three chalk X-marks are drawn on the boards: BOBBLE, RIBBON, and a circle." },
+    { id: "stage_crate", x: 1025, y: 375, w: 36, h: 36, solid: true, type: "crate",
+      text: "Costume trunk. Smells of damp foam, mildew, and old talcum powder." },
+
+    { id: "slide_tower", x: 645, y: 165, w: 95, h: 95, solid: true, type: "playground",
+      text: "Plastic crawl-tube tower. Scratches inside the yellow slide go upward, not down." },
+    { id: "spring_rider", x: 875, y: 240, w: 42, h: 42, solid: true, type: "rider",
+      text: "Rusted coil spring pony. Sometimes it rocks back and forth even with no draft." },
+
+    { id: "breaker_box", x: 1285, y: 145, w: 36, h: 44, solid: true, type: "breaker",
+      text: "Main breaker panel. Half the switches are welded in the ON position with melted plastic." },
+    { id: "maint_door", x: 1130, y: 332, w: 80, h: 16, solid: true, type: "vaultdoor",
+      text: "Heavy backstage service door. Needs a double-bank bounce shot down the corridor to trip the latch." }
+  ];
+
+  // =========================================================================
+  // 4. PUZZLE TARGETS, COLLECTIBLES & LORE NOTES
+  // =========================================================================
+  const TARGETS = [
+    {
+      id: "t_prize",
+      x: 256, y: 455, r: 16,
+      reqBounces: 1,
+      solved: false,
+      onSolve: () => {
+        const gate = PROPS.find(p => p.id === "prize_gate");
+        if (gate) gate.solid = false;
+        showToast("CLICK — The Prize Counter security grille unlocked.");
+        audio.playMechClunk();
+      }
+    },
+    {
+      id: "t_corridor",
+      x: 1320, y: 280, r: 16,
+      reqBounces: 2,
+      solved: false,
+      onSolve: () => {
+        const door = PROPS.find(p => p.id === "maint_door");
+        if (door) door.solid = false;
+        showToast("CLANK — The Backstage Stage door unlatched.");
+        audio.playMechClunk();
+      }
+    },
+    {
+      id: "t_stage_bell",
+      x: 1190, y: 375, r: 18,
+      reqBounces: 3,
+      solved: false,
+      onSolve: () => {
+        const tok = TOKENS.find(t => t.id === "tok_stage");
+        if (tok) tok.hidden = false;
+        showToast("DIIIING — A Brass Token dropped onto the center of the Mascot Stage!");
+        audio.playMechClunk();
+      }
+    }
+  ];
+
+  const TOKENS = [
+    { id: "tok_prize", x: 315, y: 485, collected: false, hidden: false, name: "Brass Token I (Prize Counter)" },
+    { id: "tok_pit",   x: 815, y: 595, collected: false, hidden: true,  name: "Brass Token II (Sunken Ball Pit)" },
+    { id: "tok_stage", x: 1190, y: 425, collected: false, hidden: true,  name: "Brass Token III (Mascot Stage)" }
+  ];
+
+  const NOTES = [
+    {
+      id: "note_1", x: 745, y: 925, collected: false,
+      title: "MEMO #1 — SHIFT SUPERVISOR (OCT 1998)",
+      body: "Stop locking the red rubber ball in the Reception safe. Every morning we open up, it's sitting back in the Ball Pit. And tell whoever is wearing the Bobble head after hours to stop standing by the exit."
+    },
+    {
+      id: "note_2", x: 335, y: 965, collected: false,
+      title: "MEMO #2 — ARCADE TECH",
+      body: "The new mascot suit ('The Returner') wasn't ordered by management. It arrived in a crate with no return address. Inside the torso is just a hollow fiberglass shell and a heavy rubber sphere."
+    },
+    {
+      id: "note_3", x: 1295, y: 730, collected: false,
+      title: "MEMO #3 — BIRTHDAY HOSTESS",
+      body: "During the last party, Miss Ribbon wouldn't stop clapping after the music box wound down. When the kids threw the play-ball at the stage curtain, it bounced back twice as fast."
+    },
+    {
+      id: "note_4", x: 1030, y: 155, collected: false,
+      title: "MEMO #4 — NIGHT WATCHMAN",
+      body: "If you want out for good, don't just unlock the shutter. Throw the ball into the Maintenance Furnace chute after three bounces—break the cycle so it never bounces back."
+    }
+  ];
+
+  const FURNACE = { x: 1045, y: 295, r: 18, triggered: false };
+
+  // =========================================================================
+  // 5. THE THREE ORIGINAL MASCOTS
+  // =========================================================================
+  const MASCOTS = {
+    bobble: {
+      name: "BOBBLE",
+      x: 1120, y: 390,
+      angle: Math.PI / 2,
+      visible: true,
+      twitchTimer: 0,
+      headAngle: 0,
+      relocateCooldown: 14
+    },
+    ribbon: {
+      name: "MISS RIBBON",
+      x: 1260, y: 390,
+      visible: false,
+      appearTimer: 8,
+      lingerTimer: 0,
+      swayPhase: 0,
+      inPhoto: false
+    },
+    returner: {
+      name: "THE RETURNER",
+      x: 815, y: 220,
+      visible: false,
+      activeTimer: 0,
+      cooldown: 16,
+      orbitAngle: 0
+    }
+  };
+
+  // =========================================================================
+  // 6. GAME STATE & INPUT
+  // =========================================================================
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+
+  const state = {
+    phase: "title",
+    time: 0,
+    shiftProgress: 0,
+    tension: 0.15,
+    camera: { x: 820, y: 880, shake: 0 },
+    mouse: { x: 320, y: 180, worldX: 820, worldY: 880, down: false },
+    keys: {},
+    player: {
+      x: 820, y: 920,
+      vx: 0, vy: 0,
+      r: 13,
+      angle: -Math.PI / 2,
+      flashlight: true,
+      stepDist: 0,
+      hasJacket: false
+    },
+    ball: {
+      held: true,
+      x: 820, y: 920,
+      vx: 0, vy: 0,
+      r: 8,
+      z: 6,
+      vz: 0,
+      bounces: 0,
+      charge: 0,
+      charging: false,
+      returning: false,
+      returnDelay: 0,
+      trail: [],
+      throws: 0
+    },
+    pitDug: 0,
+    toast: { text: "", timer: 0 },
+    inspectText: "",
+    inspectTimer: 0,
+    showNotebook: false,
+    blackoutRoom: null,
+    blackoutTimer: 0,
+    riderSway: 0,
+    endingType: "standard"
+  };
+
+  function showToast(msg, dur = 4.2) {
+    state.toast.text = msg;
+    state.toast.timer = dur;
+  }
+
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    state.keys[k] = true;
+    if (state.phase !== "playing") return;
+
+    if (k === "f") {
+      state.player.flashlight = !state.player.flashlight;
+      audio.playBounce(0.25, "metal", 0);
+    }
+    if (k === "tab") {
+      e.preventDefault();
+      state.showNotebook = !state.showNotebook;
+    }
+    if (k === "e") interact();
+    if (k === "r") recallBall();
+    if (k === " " && state.ball.held && !state.showNotebook) {
+      e.preventDefault();
+      state.ball.charging = true;
+    }
+  });
+
+  window.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    state.keys[k] = false;
+    if (state.phase === "playing" && k === " " && state.ball.charging) {
+      throwBall();
+    }
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    state.mouse.x = ((e.clientX - rect.left) / rect.width) * canvas.width;
+    state.mouse.y = ((e.clientY - rect.top) / rect.height) * canvas.height;
+  });
+
+  canvas.addEventListener("mousedown", (e) => {
+    if (e.button !== 0 || state.phase !== "playing") return;
+    if (state.showNotebook) {
+      state.showNotebook = false;
+      return;
+    }
+    state.mouse.down = true;
+    if (state.ball.held) state.ball.charging = true;
+  });
+
+  window.addEventListener("mouseup", (e) => {
+    if (e.button !== 0) return;
+    state.mouse.down = false;
+    if (state.phase === "playing" && state.ball.charging) {
+      throwBall();
+    }
+  });
+
+  document.getElementById("start-btn").addEventListener("click", () => {
+    audio.init();
+    document.getElementById("title-screen").classList.add("hidden");
+    document.getElementById("intro-screen").classList.remove("hidden");
+    state.phase = "intro";
+  });
+
+  document.getElementById("begin-btn").addEventListener("click", () => {
+    audio.init();
+    document.getElementById("intro-screen").classList.add("hidden");
+    state.phase = "playing";
+    showToast("Throw the ball [HOLD CLICK / SPACE] to test the halls. Inspect with [E].", 5.5);
+  });
+
+  document.getElementById("replay-btn").addEventListener("click", resetGame);
+
+  const muteBtn = document.getElementById("mute-btn");
+  muteBtn.addEventListener("click", () => {
+    audio.init();
+    const m = audio.toggleMute();
+    muteBtn.textContent = m ? "SOUND: OFF" : "SOUND: ON";
+  });
+
+  document.getElementById("vol-slider").addEventListener("input", (e) => {
+    audio.init();
+    audio.setVolume(e.target.value);
+  });
+
+  // =========================================================================
+  // 7. BALL PHYSICS, BOUNCE-BACK MECHANIC & INTERACTION
+  // =========================================================================
+  function throwBall() {
+    const b = state.ball;
+    const p = state.player;
+    b.charging = false;
+    if (!b.held) return;
+
+    const power = 260 + Math.min(1, b.charge) * 440;
+    const dx = state.mouse.worldX - p.x;
+    const dy = state.mouse.worldY - p.y;
+    const len = Math.hypot(dx, dy) || 1;
+
+    b.held = false;
+    b.returning = false;
+    b.bounces = 0;
+    b.x = p.x + (dx / len) * 16;
+    b.y = p.y + (dy / len) * 16;
+    b.vx = (dx / len) * power;
+    b.vy = (dy / len) * power;
+    b.z = 12;
+    b.vz = 65;
+    b.charge = 0;
+    b.returnDelay = 2.6;
+    b.throws++;
+    b.trail = [];
+
+    audio.playBounce(0.65, "rubber", 0);
+  }
+
+  function recallBall() {
+    const b = state.ball;
+    if (b.held) {
+      showToast("The cold rubber ball is already in your hand.", 2.2);
+      return;
+    }
+    b.returning = true;
+    showToast("You whistle softly. Somewhere in the dark, rubber slaps against tile...", 2.8);
+  }
+
+  function interact() {
+    const p = state.player;
+    const reach = 54;
+
+    // 1. Brass Tokens
+    for (const tok of TOKENS) {
+      if (!tok.collected && !tok.hidden && Math.hypot(p.x - tok.x, p.y - tok.y) < reach) {
+        tok.collected = true;
+        audio.playMechClunk();
+        const count = TOKENS.filter(t => t.collected).length;
+        showToast(`COLLECTED: ${tok.name} (${count}/3 Tokens)`);
+        state.shiftProgress = Math.min(1, count * 0.32);
+        triggerHorrorShift(count);
+        return;
+      }
+    }
+
+    // 2. Lore Notes
+    for (const note of NOTES) {
+      if (!note.collected && Math.hypot(p.x - note.x, p.y - note.y) < reach) {
+        note.collected = true;
+        audio.playBounce(0.3, "rubber", 0);
+        state.showNotebook = true;
+        showToast(`FOUND: ${note.title} (Press [TAB] anytime to read)`);
+        return;
+      }
+    }
+
+    // 3. Ball Pit digging
+    const pit = PROPS.find(pr => pr.id === "ballpit_basin");
+    if (pit && p.x > pit.x - 16 && p.x < pit.x + pit.w + 16 && p.y > pit.y - 16 && p.y < pit.y + pit.h + 16) {
+      const pitTok = TOKENS.find(t => t.id === "tok_pit");
+      if (pitTok && pitTok.hidden) {
+        state.pitDug++;
+        audio.playBounce(0.45, "rubber", 0);
+        if (state.pitDug >= 3) {
+          pitTok.hidden = false;
+          showToast("Your hand strikes cold metal beneath the plastic balls—a Brass Token!");
+        } else {
+          showToast(`You wade through the hollow plastic balls... (${state.pitDug}/3)`);
+        }
+        return;
+      }
+    }
+
+    // 4. Exit Shutter
+    const shutter = PROPS.find(pr => pr.id === "exit_shutter");
+    if (shutter && Math.hypot(p.x - (shutter.x + shutter.w / 2), p.y - shutter.y) < 58) {
+      const count = TOKENS.filter(t => t.collected).length;
+      if (count >= 3) {
+        triggerEnding(state.player.hasJacket ? "jacket" : "standard");
+        return;
+      } else {
+        showToast(`The Exit Shutter is bolted shut. (${count}/3 Brass Tokens inserted)`);
+        return;
+      }
+    }
+
+    // 5. Brother's Windbreaker in Prize Counter
+    const prizeCounter = PROPS.find(pr => pr.id === "prize_counter");
+    if (prizeCounter && !state.player.hasJacket && p.y < 525 && Math.hypot(p.x - 360, p.y - 490) < 55) {
+      state.player.hasJacket = true;
+      showToast("You retrieved your brother's blue windbreaker from behind the glass.");
+      audio.playMechClunk();
+      return;
+    }
+
+    // 6. Inspect nearest Prop
+    let best = null, bestD = 64;
+    for (const pr of PROPS) {
+      const cx = Math.max(pr.x, Math.min(p.x, pr.x + pr.w));
+      const cy = Math.max(pr.y, Math.min(p.y, pr.y + pr.h));
+      const d = Math.hypot(p.x - cx, p.y - cy);
+      if (d < bestD) {
+        bestD = d;
+        best = pr;
+      }
+    }
+    if (best) {
+      if (best.id === "photo_wall" && MASCOTS.ribbon.inPhoto) {
+        state.inspectText = "Staff Polaroid board. Standing in the previously empty corner is Miss Ribbon—holding your red play-ball.";
+      } else {
+        state.inspectText = best.text;
+      }
+      state.inspectTimer = 5.0;
+    }
+  }
+
+  function circleRectResolve(cx, cy, r, rx, ry, rw, rh) {
+    const closestX = Math.max(rx, Math.min(cx, rx + rw));
+    const closestY = Math.max(ry, Math.min(cy, ry + rh));
+    const dx = cx - closestX;
+    const dy = cy - closestY;
+    const distSq = dx * dx + dy * dy;
+    if (distSq >= r * r) return null;
+
+    const dist = Math.sqrt(distSq);
+    if (dist === 0) {
+      const left = Math.abs(cx - rx);
+      const right = Math.abs(rx + rw - cx);
+      const top = Math.abs(cy - ry);
+      const bottom = Math.abs(ry + rh - cy);
+      const m = Math.min(left, right, top, bottom);
+      if (m === left) return { nx: -1, ny: 0, pen: r + left };
+      if (m === right) return { nx: 1, ny: 0, pen: r + right };
+      if (m === top) return { nx: 0, ny: -1, pen: r + top };
+      return { nx: 0, ny: 1, pen: r + bottom };
+    }
+    return { nx: dx / dist, ny: dy / dist, pen: r - dist };
+  }
+
+  function getSolidObstacles() {
+    const list = [...WALLS];
+    for (const p of PROPS) {
+      if (p.solid) list.push(p);
+    }
+    return list;
+  }
+
+  function updateBall(dt) {
+    const b = state.ball;
+    const p = state.player;
+
+    if (b.held) {
+      if (b.charging) {
+        b.charge = Math.min(1, b.charge + dt * 1.35);
+      }
+      b.x = p.x + Math.cos(p.angle) * 14;
+      b.y = p.y + Math.sin(p.angle) * 14;
+      b.z = 10;
+      return;
+    }
+
+    b.trail.push({ x: b.x, y: b.y, z: b.z });
+    if (b.trail.length > 14) b.trail.shift();
+
+    b.vz -= 340 * dt;
+    b.z += b.vz * dt;
+    if (b.z <= 4) {
+      b.z = 4;
+      if (Math.abs(b.vz) > 28) {
+        b.vz = -b.vz * 0.68;
+        const pan = Math.max(-1, Math.min(1, (b.x - p.x) / 360));
+        audio.playBounce(Math.min(1, Math.abs(b.vz) / 220), "rubber", pan);
+      } else {
+        b.vz = 0;
+      }
+    }
+
+    const steps = 3;
+    const sdt = dt / steps;
+    const solids = getSolidObstacles();
+
+    for (let s = 0; s < steps; s++) {
+      b.x += b.vx * sdt;
+      b.y += b.vy * sdt;
+
+      const drag = b.returning ? 0.996 : 0.991;
+      b.vx *= Math.pow(drag, 1 / steps);
+      b.vy *= Math.pow(drag, 1 / steps);
+
+      for (const box of solids) {
+        const hit = circleRectResolve(b.x, b.y, b.r, box.x, box.y, box.w, box.h);
+        if (hit) {
+          b.x += hit.nx * hit.pen;
+          b.y += hit.ny * hit.pen;
+          const dot = b.vx * hit.nx + b.vy * hit.ny;
+          if (dot < 0) {
+            const restitution = 0.92;
+            b.vx -= (1 + restitution) * dot * hit.nx;
+            b.vy -= (1 + restitution) * dot * hit.ny;
+            b.bounces++;
+            const spd = Math.hypot(b.vx, b.vy);
+            const pan = Math.max(-1, Math.min(1, (b.x - p.x) / 360));
+            audio.playBounce(Math.min(1, spd / 500), box.type === "arcade" ? "metal" : "rubber", pan);
+          }
+        }
+      }
+
+      // Check Puzzle Targets
+      for (const t of TARGETS) {
+        if (!t.solved && Math.hypot(b.x - t.x, b.y - t.y) < b.r + t.r) {
+          if (b.bounces >= t.reqBounces) {
+            t.solved = true;
+            t.onSolve();
+          } else {
+            const nx = (b.x - t.x) / (Math.hypot(b.x - t.x, b.y - t.y) || 1);
+            const ny = (b.y - t.y) / (Math.hypot(b.x - t.x, b.y - t.y) || 1);
+            b.vx = nx * 240;
+            b.vy = ny * 240;
+            audio.playBounce(0.4, "metal", 0);
+            showToast(`Sensor flashed amber: Needs ${t.reqBounces}+ wall bounces (yours had ${b.bounces}).`, 3.2);
+          }
+        }
+      }
+
+      // Check Secret Furnace Ending
+      if (!FURNACE.triggered && Math.hypot(b.x - FURNACE.x, b.y - FURNACE.y) < b.r + FURNACE.r) {
+        if (b.bounces >= 3) {
+          FURNACE.triggered = true;
+          audio.playMechClunk();
+          triggerEnding("furnace");
+          return;
+        } else {
+          showToast("The furnace hatch rattles shut. It needs a high-energy 3+ bounce shot.", 2.6);
+        }
+      }
+    }
+
+    // THE RETURNER INTERACTION: redirects ball at impossible angle
+    const ret = MASCOTS.returner;
+    if (ret.visible && Math.hypot(b.x - ret.x, b.y - ret.y) < 34) {
+      const angToPlayer = Math.atan2(p.y - b.y, p.x - b.x) + (Math.random() - 0.5) * 0.45;
+      const boost = 420;
+      b.vx = Math.cos(angToPlayer) * boost;
+      b.vy = Math.sin(angToPlayer) * boost;
+      b.bounces += 2;
+      b.returning = true;
+      audio.playMascotSound("returner", 0);
+      showToast("The Returner struck the ball back toward you at an impossible angle!", 3.2);
+    }
+
+    // BOUNCE-BACK CORE MECHANIC
+    const speed = Math.hypot(b.vx, b.vy);
+    b.returnDelay -= dt;
+    if (speed < 65 || b.returnDelay <= 0) {
+      b.returning = true;
+    }
+
+    if (b.returning) {
+      const dx = p.x - b.x;
+      const dy = p.y - b.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const perpX = -dy / dist;
+      const perpY = dx / dist;
+      const curve = Math.sin(state.time * 4.5) * 85;
+      const desiredVx = (dx / dist) * 255 + perpX * curve;
+      const desiredVy = (dy / dist) * 255 + perpY * curve;
+
+      b.vx += (desiredVx - b.vx) * Math.min(1, dt * 3.2);
+      b.vy += (desiredVy - b.vy) * Math.min(1, dt * 3.2);
+
+      if (b.z <= 4.5 && Math.random() < dt * 2.4) {
+        b.vz = 75;
+      }
+
+      if (dist < p.r + b.r + 5) {
+        b.held = true;
+        b.returning = false;
+        b.vx = 0; b.vy = 0;
+        audio.playBounce(0.35, "rubber", 0);
+      }
+    }
+  }
+
+  // =========================================================================
+  // 8. UNCANNY MASCOT AI & ENVIRONMENTAL HORROR EVENTS
+  // =========================================================================
+  function triggerHorrorShift(tokenCount) {
+    audio.triggerSilence(2.8);
+    state.camera.shake = 5;
+    MASCOTS.ribbon.inPhoto = true;
+
+    if (tokenCount === 1) {
+      MASCOTS.bobble.x = 710;
+      MASCOTS.bobble.y = 815;
+      MASCOTS.bobble.visible = true;
+      showToast("Somewhere behind you, a heavy plastic shell creaks against linoleum.", 4.2);
+    } else if (tokenCount === 2) {
+      state.blackoutRoom = "ballpit";
+      state.blackoutTimer = 28;
+      MASCOTS.returner.visible = true;
+      MASCOTS.returner.x = 815;
+      MASCOTS.returner.y = 530;
+      MASCOTS.returner.activeTimer = 22;
+      showToast("A breaker trips. Fluorescent tubes die in the Ball Pit.", 4.2);
+    } else if (tokenCount === 3) {
+      MASCOTS.bobble.x = 820;
+      MASCOTS.bobble.y = 795;
+      MASCOTS.bobble.visible = true;
+      MASCOTS.ribbon.visible = true;
+      MASCOTS.ribbon.x = 955;
+      MASCOTS.ribbon.y = 845;
+      MASCOTS.ribbon.lingerTimer = 30;
+      showToast("Three locks disengage at Reception. The playhouse grows dead silent.", 4.8);
+    }
+  }
+
+  function isPlayerLookingAt(x, y, fovCos = 0.35) {
+    const p = state.player;
+    const dx = x - p.x;
+    const dy = y - p.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    return (dx / dist) * Math.cos(p.angle) + (dy / dist) * Math.sin(p.angle) > fovCos;
+  }
+
+  function updateMascotsAndHorror(dt) {
+    const p = state.player;
+
+    // 1. BOBBLE: stiff relocation only when outside player's gaze
+    const bob = MASCOTS.bobble;
+    bob.twitchTimer -= dt;
+    if (bob.twitchTimer <= 0) {
+      bob.twitchTimer = 1.4 + Math.random() * 2.5;
+      bob.headAngle = (Math.random() - 0.5) * 0.45;
+    }
+
+    const distBob = Math.hypot(p.x - bob.x, p.y - bob.y);
+    const seenBob = distBob < 320 && isPlayerLookingAt(bob.x, bob.y, 0.25);
+
+    if (!seenBob) {
+      bob.relocateCooldown -= dt;
+      if (bob.relocateCooldown <= 0 && distBob > 160) {
+        bob.relocateCooldown = 11 + Math.random() * 9;
+        const behindAng = p.angle + Math.PI + (Math.random() - 0.5) * 1.1;
+        const candX = p.x + Math.cos(behindAng) * 210;
+        const candY = p.y + Math.sin(behindAng) * 210;
+        const inRoom = ROOMS.some(r => candX > r.x + 30 && candX < r.x + r.w - 30 && candY > r.y + 30 && candY < r.y + r.h - 30);
+        const hitsWall = getSolidObstacles().some(w => circleRectResolve(candX, candY, 22, w.x, w.y, w.w, w.h));
+        if (inRoom && !hitsWall) {
+          bob.x = candX;
+          bob.y = candY;
+          bob.angle = Math.atan2(p.y - bob.y, p.x - bob.x);
+          audio.playMascotSound("bobble", (bob.x - p.x) / 300);
+        }
+      }
+    } else {
+      const desired = Math.atan2(p.y - bob.y, p.x - bob.x);
+      bob.angle += (desired - bob.angle) * Math.min(1, dt * 0.9);
+    }
+
+    // 2. MISS RIBBON: watches from distant corners/corridors, vanishes when approached
+    const rib = MASCOTS.ribbon;
+    rib.swayPhase += dt * 1.6;
+    if (!rib.visible) {
+      rib.appearTimer -= dt;
+      if (rib.appearTimer <= 0) {
+        rib.appearTimer = 18 + Math.random() * 14;
+        const spots = [
+          { x: 1290, y: 210 },
+          { x: 700,  y: 290 },
+          { x: 1320, y: 890 },
+          { x: 280,  y: 960 }
+        ];
+        const pick = spots[(Math.random() * spots.length) | 0];
+        if (Math.hypot(p.x - pick.x, p.y - pick.y) > 250) {
+          rib.x = pick.x;
+          rib.y = pick.y;
+          rib.visible = true;
+          rib.lingerTimer = 11;
+          audio.playMascotSound("ribbon", (rib.x - p.x) / 400);
+        }
+      }
+    } else {
+      rib.lingerTimer -= dt;
+      const dRib = Math.hypot(p.x - rib.x, p.y - rib.y);
+      if (dRib < 135 || rib.lingerTimer <= 0) {
+        rib.visible = false;
+        if (dRib < 135) {
+          audio.playFootstep("tile", true, 0);
+          showToast("Faded satin ribbons flutter around the corner—nobody is there.", 2.6);
+        }
+      }
+    }
+
+    // 3. THE RETURNER: stalks halls and intercepts thrown balls
+    const ret = MASCOTS.returner;
+    ret.orbitAngle += dt * 2.1;
+    if (!ret.visible) {
+      ret.cooldown -= dt;
+      if (ret.cooldown <= 0) {
+        ret.cooldown = 20 + Math.random() * 12;
+        const spawns = [
+          { x: 470, y: 780 },
+          { x: 815, y: 580 },
+          { x: 1180, y: 520 },
+          { x: 1120, y: 220 }
+        ];
+        const sp = spawns[(Math.random() * spawns.length) | 0];
+        if (Math.hypot(p.x - sp.x, p.y - sp.y) > 220) {
+          ret.x = sp.x;
+          ret.y = sp.y;
+          ret.visible = true;
+          ret.activeTimer = 15;
+          audio.playMascotSound("returner", (ret.x - p.x) / 350);
+        }
+      }
+    } else {
+      ret.activeTimer -= dt;
+      const targetX = state.ball.held ? p.x : state.ball.x;
+      const targetY = state.ball.held ? p.y : state.ball.y;
+      const dx = targetX - ret.x;
+      const dy = targetY - ret.y;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d > 48) {
+        const nx = ret.x + (dx / d) * 34 * dt;
+        const ny = ret.y + (dy / d) * 34 * dt;
+        if (!getSolidObstacles().some(w => circleRectResolve(nx, ny, 18, w.x, w.y, w.w, w.h))) {
+          ret.x = nx;
+          ret.y = ny;
+        }
+      }
+      if (ret.activeTimer <= 0) ret.visible = false;
+    }
+
+    // 4. Phantom ball bounces in distant rooms
+    if (Math.random() < dt * 0.065) {
+      const ghostSpots = [
+        { x: 1190, y: 400 },
+        { x: 300,  y: 470 },
+        { x: 700,  y: 200 }
+      ];
+      const gs = ghostSpots[(Math.random() * ghostSpots.length) | 0];
+      if (Math.hypot(p.x - gs.x, p.y - gs.y) > 240) {
+        const pan = Math.max(-1, Math.min(1, (gs.x - p.x) / 420));
+        audio.playBounce(0.45, "rubber", pan);
+        setTimeout(() => audio.playBounce(0.32, "rubber", pan), 290);
+        setTimeout(() => audio.playBounce(0.20, "rubber", pan), 540);
+      }
+    }
+
+    // 5. Playground spring rider rocks on its own
+    if (Math.random() < dt * 0.08) {
+      state.riderSway = 1.0;
+    }
+    if (state.riderSway > 0) {
+      state.riderSway = Math.max(0, state.riderSway - dt * 0.28);
+    }
+
+    // 6. Ball slips out on its own if idle too long
+    if (state.ball.held && !state.ball.charging && Math.random() < dt * 0.016 && state.ball.throws > 0) {
+      state.ball.held = false;
+      state.ball.x = p.x + Math.cos(p.angle) * 22;
+      state.ball.y = p.y + Math.sin(p.angle) * 22;
+      state.ball.vx = Math.cos(p.angle) * 190;
+      state.ball.vy = Math.sin(p.angle) * 190;
+      state.ball.returnDelay = 0.55;
+      showToast("The ball twitched out of your fingers on its own.", 2.4);
+    }
+
+    if (state.blackoutTimer > 0) {
+      state.blackoutTimer -= dt;
+      if (state.blackoutTimer <= 0) state.blackoutRoom = null;
+    }
+
+    const nearestMascot = Math.min(
+      bob.visible ? Math.hypot(p.x - bob.x, p.y - bob.y) : 999,
+      rib.visible ? Math.hypot(p.x - rib.x, p.y - rib.y) : 999,
+      ret.visible ? Math.hypot(p.x - ret.x, p.y - ret.y) : 999
+    );
+    const proximityTension = Math.max(0, 1 - nearestMascot / 320);
+    state.tension += ((proximityTension * 0.75 + state.shiftProgress * 0.25) - state.tension) * Math.min(1, dt * 2);
+  }
+
+  // =========================================================================
+  // 9. PLAYER UPDATE & ENDINGS
+  // =========================================================================
+  function getCurrentRoom() {
+    const p = state.player;
+    return ROOMS.find(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) || ROOMS[0];
+  }
+
+  function updatePlayer(dt) {
+    const p = state.player;
+    if (state.showNotebook) return;
+
+    let ix = 0, iy = 0;
+    if (state.keys["w"] || state.keys["arrowup"]) iy -= 1;
+    if (state.keys["s"] || state.keys["arrowdown"]) iy += 1;
+    if (state.keys["a"] || state.keys["arrowleft"]) ix -= 1;
+    if (state.keys["d"] || state.keys["arrowright"]) ix += 1;
+
+    if (ix !== 0 || iy !== 0) {
+      const len = Math.hypot(ix, iy);
+      ix /= len; iy /= len;
+    }
+
+    const speed = state.ball.charging ? 98 : 148;
+    p.vx += (ix * speed - p.vx) * Math.min(1, dt * 14);
+    p.vy += (iy * speed - p.vy) * Math.min(1, dt * 14);
+
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+
+    for (const box of getSolidObstacles()) {
+      const hit = circleRectResolve(p.x, p.y, p.r, box.x, box.y, box.w, box.h);
+      if (hit) {
+        p.x += hit.nx * hit.pen;
+        p.y += hit.ny * hit.pen;
+      }
+    }
+
+    const moved = Math.hypot(p.vx, p.vy) * dt;
+    p.stepDist += moved;
+    if (p.stepDist > 44) {
+      p.stepDist = 0;
+      audio.playFootstep(getCurrentRoom().floor, false, 0);
+    }
+
+    state.mouse.worldX = state.camera.x - canvas.width / 2 + state.mouse.x;
+    state.mouse.worldY = state.camera.y - canvas.height / 2 + state.mouse.y;
+    p.angle = Math.atan2(state.mouse.worldY - p.y, state.mouse.worldX - p.x);
+
+    state.camera.x += (p.x - state.camera.x) * Math.min(1, dt * 7);
+    state.camera.y += (p.y - state.camera.y) * Math.min(1, dt * 7);
+    if (state.camera.shake > 0) state.camera.shake = Math.max(0, state.camera.shake - dt * 14);
+  }
+
+  function triggerEnding(type) {
+    state.phase = "ending";
+    state.endingType = type;
+    audio.triggerSilence(4.0);
+
+    const titleEl = document.getElementById("ending-title");
+    const textEl = document.getElementById("ending-text");
+    const statsEl = document.getElementById("ending-stats");
+
+    if (type === "furnace") {
+      titleEl.textContent = "HIDDEN ENDING: DEAD WEIGHT";
+      textEl.textContent = "The red rubber ball drops into the Maintenance Furnace on its third ricochet. Heavy iron jaws snap shut over the chute. For the first time since 1998, nothing bounces back. Down the hall, the Reception shutter groans open on its own—leaving three motionless mascot suits slumped empty on the carpet.";
+    } else if (type === "jacket") {
+      titleEl.textContent = "TRUE ENDING: TWO JACKETS, ONE BALL";
+      textEl.textContent = "With your brother's faded windbreaker tucked under one arm and all three Brass Tokens turned, you haul the steel shutter open into the cold November air. You run three blocks before checking your coat pocket. Something round and heavy is pressing against the lining.";
+    } else {
+      titleEl.textContent = "ENDING: LAST ROUND";
+      textEl.textContent = "The chain rattles free and you slip beneath the Reception shutter into the night. Behind the frosted glass doors, yellow painted eyes watch from the dark—and a red rubber ball taps gently against the inside of the glass, waiting for tomorrow.";
+    }
+
+    const notesFound = NOTES.filter(n => n.collected).length;
+    const mins = Math.floor(state.time / 60);
+    const secs = Math.floor(state.time % 60).toString().padStart(2, "0");
+    statsEl.textContent = `TIME: ${mins}:${secs}  //  BALL THROWS: ${state.ball.throws}  //  MEMOS FOUND: ${notesFound}/4  //  JACKET RECOVERED: ${state.player.hasJacket ? "YES" : "NO"}`;
+
+    document.getElementById("ending-screen").classList.remove("hidden");
+  }
+
+  function resetGame() {
+    state.phase = "playing";
+    state.time = 0;
+    state.shiftProgress = 0;
+    state.tension = 0.15;
+    state.player.x = 820; state.player.y = 920;
+    state.player.vx = 0; state.player.vy = 0;
+    state.player.hasJacket = false;
+    state.player.flashlight = true;
+    state.ball.held = true;
+    state.ball.x = 820; state.ball.y = 920;
+    state.ball.bounces = 0;
+    state.ball.throws = 0;
+    state.ball.returning = false;
+    state.pitDug = 0;
+    state.blackoutRoom = null;
+    state.showNotebook = false;
+
+    TOKENS.forEach(t => {
+      t.collected = false;
+      t.hidden = t.id !== "tok_prize";
+    });
+    TARGETS.forEach(t => t.solved = false);
+    NOTES.forEach(n => n.collected = false);
+    FURNACE.triggered = false;
+
+    const gate = PROPS.find(p => p.id === "prize_gate");
+    if (gate) gate.solid = true;
+    const mdoor = PROPS.find(p => p.id === "maint_door");
+    if (mdoor) mdoor.solid = true;
+
+    MASCOTS.bobble.x = 1120; MASCOTS.bobble.y = 390;
+    MASCOTS.ribbon.visible = false; MASCOTS.ribbon.inPhoto = false;
+    MASCOTS.returner.visible = false;
+
+    document.getElementById("ending-screen").classList.add("hidden");
+    showToast("The shutter slams behind you once more.", 3.5);
+  }
+
+  // =========================================================================
+  // 10. LOW-POLY / PS1-INSPIRED RENDERING PIPELINE
+  // =========================================================================
+  function drawFloorRoom(r) {
+    const tex = TEX[r.floor] || TEX.carpet;
+    const pat = ctx.createPattern(tex, "repeat");
+    ctx.fillStyle = pat;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+
+    ctx.strokeStyle = "rgba(0,0,0,0.58)";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(r.x + 3, r.y + 3, r.w - 6, r.h - 6);
+  }
+
+  function drawMascotBobble(m) {
+    if (!m.visible) return;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(3, 5, 19, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.rotate(m.angle);
+    ctx.fillStyle = "#8a7836";
+    ctx.fillRect(-4, -21, 9, 6);
+    ctx.fillRect(-4, 15, 9, 6);
+
+    ctx.fillStyle = "#a38d3e";
+    ctx.beginPath();
+    ctx.arc(0, 0, 16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#4d411b";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.rotate(m.headAngle);
+    ctx.fillStyle = "#bfa64b";
+    ctx.beginPath();
+    ctx.arc(3, 0, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Peeling paint patches
+    ctx.fillStyle = "#3a3835";
+    ctx.beginPath();
+    ctx.arc(-4, -7, 4.5, 0, Math.PI * 2);
+    ctx.arc(1, 9, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Painted eyes & stiff grin
+    ctx.fillStyle = "#12100e";
+    ctx.beginPath();
+    ctx.arc(11, -5, 2.3, 0, Math.PI * 2);
+    ctx.arc(11, 5, 2.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#59221d";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(9, 0, 6, -0.7, 0.7);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawMascotRibbon(m) {
+    if (!m.visible) return;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(Math.sin(m.swayPhase) * 0.14);
+
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(2, 6, 15, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#5e3643";
+    ctx.beginPath();
+    ctx.moveTo(-10, -14);
+    ctx.lineTo(11, -11);
+    ctx.lineTo(14, 13);
+    ctx.lineTo(-13, 15);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "#8f6d75";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-8, -12); ctx.lineTo(-18, -18 + Math.sin(m.swayPhase * 2) * 4);
+    ctx.moveTo(-8, 12);  ctx.lineTo(-19, 17 - Math.sin(m.swayPhase * 2) * 4);
+    ctx.stroke();
+
+    ctx.fillStyle = "#cfc3b0";
+    ctx.beginPath();
+    ctx.ellipse(2, 0, 10, 12, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#171314";
+    ctx.fillRect(5, -5, 3, 2);
+    ctx.fillRect(5, 3, 3, 2);
+
+    ctx.strokeStyle = "#7a2328";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(4, 0, 6.5, -0.9, 0.9);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawMascotReturner(m) {
+    if (!m.visible) return;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+
+    ctx.fillStyle = "rgba(0,0,0,0.65)";
+    ctx.beginPath();
+    ctx.ellipse(0, 8, 18, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#2b2523";
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(-6, -16); ctx.lineTo(-18, -24 + Math.sin(m.orbitAngle) * 4);
+    ctx.moveTo(-6, 16);  ctx.lineTo(-16, 25 - Math.sin(m.orbitAngle) * 4);
+    ctx.stroke();
+
+    ctx.fillStyle = "#591d1d";
+    ctx.beginPath();
+    ctx.arc(0, 0, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#240b0b";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.strokeStyle = "#9c8f7a";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 11, -0.8, 0.8);
+    ctx.stroke();
+
+    ctx.fillStyle = "#b5a68e";
+    ctx.beginPath();
+    ctx.arc(11, 0, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#120d0d";
+    ctx.beginPath();
+    ctx.arc(13, 0, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.fillStyle = "#080707";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (state.phase === "title" || state.phase === "intro") return;
+
+    const shakeX = state.camera.shake > 0 ? (Math.random() - 0.5) * state.camera.shake : 0;
+    const shakeY = state.camera.shake > 0 ? (Math.random() - 0.5) * state.camera.shake : 0;
+
+    ctx.save();
+    ctx.translate(
+      Math.round(canvas.width / 2 - state.camera.x + shakeX),
+      Math.round(canvas.height / 2 - state.camera.y + shakeY)
+    );
+
+    for (const r of ROOMS) drawFloorRoom(r);
+
+    // Sunken Ball Pit
+    const pit = PROPS.find(p => p.id === "ballpit_basin");
+    if (pit) {
+      ctx.fillStyle = "#121821";
+      ctx.fillRect(pit.x, pit.y, pit.w, pit.h);
+      ctx.strokeStyle = "#3a4654";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(pit.x, pit.y, pit.w, pit.h);
+
+      const ballCols = ["#5c2b2b", "#2b4b5c", "#5c5228", "#2d5236"];
+      let idx = 0;
+      for (let by = pit.y + 10; by < pit.y + pit.h - 8; by += 14) {
+        for (let bx = pit.x + 10; bx < pit.x + pit.w - 8; bx += 14) {
+          ctx.fillStyle = ballCols[(idx * 7 + ((bx + by) >> 3)) % ballCols.length];
+          ctx.beginPath();
+          ctx.arc(bx + ((idx % 3) - 1) * 2, by, 5.5, 0, Math.PI * 2);
+          ctx.fill();
+          idx++;
+        }
+      }
+    }
+
+    // Mascot Stage
+    const stg = PROPS.find(p => p.id === "stage_platform");
+    if (stg) {
+      ctx.fillStyle = "#38261a";
+      ctx.fillRect(stg.x, stg.y, stg.w, stg.h);
+      ctx.strokeStyle = "#593d2b";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(stg.x, stg.y, stg.w, stg.h);
+      ctx.strokeStyle = "rgba(210, 200, 180, 0.35)";
+      ctx.lineWidth = 1.5;
+      [1120, 1190, 1260].forEach(cx => {
+        ctx.beginPath();
+        ctx.moveTo(cx - 6, 395); ctx.lineTo(cx + 6, 407);
+        ctx.moveTo(cx + 6, 395); ctx.lineTo(cx - 6, 407);
+        ctx.stroke();
+      });
+    }
+
+    // Maintenance Furnace Chute
+    ctx.fillStyle = "#171210";
+    ctx.beginPath();
+    ctx.arc(FURNACE.x, FURNACE.y, FURNACE.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#6e351e";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.fillStyle = "#8a3c1b";
+    ctx.beginPath();
+    ctx.arc(FURNACE.x, FURNACE.y, 7 + Math.sin(state.time * 5) * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Puzzle Targets
+    for (const t of TARGETS) {
+      ctx.save();
+      ctx.translate(t.x, t.y);
+      ctx.fillStyle = t.solved ? "#2d5936" : "#592824";
+      ctx.beginPath();
+      ctx.arc(0, 0, t.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = t.solved ? "#7ec48b" : "#c49a52";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#e6dcc3";
+      ctx.font = "9px Courier New";
+      ctx.textAlign = "center";
+      ctx.fillText(t.solved ? "OK" : `${t.reqBounces}x`, 0, 3);
+      ctx.restore();
+    }
+
+    // Tokens, Notes & Jacket
+    for (const tok of TOKENS) {
+      if (tok.collected || tok.hidden) continue;
+      const pulse = Math.sin(state.time * 4) * 2;
+      ctx.fillStyle = "#bfa04b";
+      ctx.beginPath();
+      ctx.arc(tok.x, tok.y, 7 + pulse * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#fff1c2";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+
+    for (const note of NOTES) {
+      if (note.collected) continue;
+      ctx.save();
+      ctx.translate(note.x, note.y);
+      ctx.rotate(0.25);
+      ctx.fillStyle = "#c9bfa6";
+      ctx.fillRect(-6, -8, 12, 16);
+      ctx.fillStyle = "#453e34";
+      ctx.fillRect(-4, -4, 8, 1);
+      ctx.fillRect(-4, 0, 7, 1);
+      ctx.fillRect(-4, 4, 5, 1);
+      ctx.restore();
+    }
+
+    if (!state.player.hasJacket) {
+      ctx.fillStyle = "#2b4d70";
+      ctx.fillRect(352, 482, 18, 14);
+      ctx.strokeStyle = "#5b84ad";
+      ctx.strokeRect(352, 482, 18, 14);
+    }
+
+    // Solid Props & Walls
+    for (const p of PROPS) {
+      if (!p.solid && p.type !== "gate" && p.type !== "vaultdoor") continue;
+      if (p.type === "ballpit" || p.type === "stage") continue;
+
+      if (!p.solid && (p.type === "gate" || p.type === "vaultdoor")) {
+        ctx.strokeStyle = "#4d453b";
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+        ctx.setLineDash([]);
+        continue;
+      }
+
+      ctx.save();
+      if (p.id === "spring_rider" && state.riderSway > 0) {
+        const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+        ctx.translate(cx, cy);
+        ctx.rotate(Math.sin(state.time * 12) * 0.16 * state.riderSway);
+        ctx.translate(-cx, -cy);
+      }
+
+      ctx.fillStyle = p.type === "arcade" ? "#262230"
+        : p.type === "shutter" ? "#3b3835"
+        : p.type === "playground" ? "#3b3522"
+        : "#332a22";
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+
+      ctx.fillStyle = "rgba(255,245,220,0.09)";
+      ctx.fillRect(p.x, p.y, p.w, 4);
+      ctx.strokeStyle = "#12100e";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(p.x, p.y, p.w, p.h);
+      ctx.restore();
+    }
+
+    for (const w of WALLS) {
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.fillRect(w.x + 4, w.y + 4, w.w, w.h);
+      ctx.fillStyle = "#1a1715";
+      ctx.fillRect(w.x, w.y, w.w, w.h);
+      ctx.fillStyle = "#2e2924";
+      ctx.fillRect(w.x, w.y, w.w, 3);
+    }
+
+    // Mascots
+    drawMascotBobble(MASCOTS.bobble);
+    drawMascotRibbon(MASCOTS.ribbon);
+    drawMascotReturner(MASCOTS.returner);
+
+    // Player & Aim Guide
+    const pl = state.player;
+    const b = state.ball;
+
+    if (b.held && b.charging) {
+      const dx = Math.cos(pl.angle);
+      const dy = Math.sin(pl.angle);
+      const maxLen = 110 + b.charge * 150;
+      ctx.strokeStyle = "rgba(214, 195, 145, 0.45)";
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(pl.x, pl.y);
+      ctx.lineTo(pl.x + dx * maxLen, pl.y + dy * maxLen);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.save();
+    ctx.translate(pl.x, pl.y);
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.beginPath();
+    ctx.arc(2, 3, pl.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.rotate(pl.angle);
+    ctx.fillStyle = "#4d594b";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 10, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#8c7a65";
+    ctx.beginPath();
+    ctx.arc(2, 0, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Rubber Ball
+    for (let i = 0; i < b.trail.length; i++) {
+      const tr = b.trail[i];
+      const alpha = (i / b.trail.length) * 0.25;
+      ctx.fillStyle = `rgba(175, 55, 45, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(tr.x, tr.y, b.r * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.beginPath();
+    ctx.arc(b.x + 2, b.y + 3, b.r * 0.9, 0, Math.PI * 2);
+    ctx.fill();
+
+    const visualR = b.r + (b.z - 4) * 0.12;
+    ctx.fillStyle = "#9c2b23";
+    ctx.beginPath();
+    ctx.arc(b.x, b.y - (b.z - 4) * 0.45, visualR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#d99b82";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(b.x - 1, b.y - (b.z - 4) * 0.45 - 1, visualR * 0.65, -0.9, 0.7);
+    ctx.stroke();
+
+    ctx.restore();
+
+    renderLighting();
+    renderHUD();
+  }
+
+  const lightCanvas = document.createElement("canvas");
+  lightCanvas.width = canvas.width;
+  lightCanvas.height = canvas.height;
+  const lctx = lightCanvas.getContext("2d");
+
+  function renderLighting() {
+    const room = getCurrentRoom();
+    const isBlackout = state.blackoutRoom === room.id;
+    const flickerMod = Math.random() < 0.03 ? 0.68 : 1.0;
+    const baseAmbient = isBlackout ? 0.04 : room.light * 0.34 * flickerMod;
+
+    lctx.globalCompositeOperation = "source-over";
+    lctx.fillStyle = `rgba(6, 5, 6, ${1 - baseAmbient})`;
+    lctx.fillRect(0, 0, lightCanvas.width, lightCanvas.height);
+
+    lctx.globalCompositeOperation = "destination-out";
+
+    const px = canvas.width / 2 + (state.player.x - state.camera.x);
+    const py = canvas.height / 2 + (state.player.y - state.camera.y);
+
+    const aura = lctx.createRadialGradient(px, py, 8, px, py, 75);
+    aura.addColorStop(0, "rgba(0,0,0,0.85)");
+    aura.addColorStop(1, "rgba(0,0,0,0)");
+    lctx.fillStyle = aura;
+    lctx.beginPath();
+    lctx.arc(px, py, 75, 0, Math.PI * 2);
+    lctx.fill();
+
+    if (state.player.flashlight) {
+      const ang = state.player.angle;
+      const coneLen = 250;
+      const spread = 0.44;
+      const grad = lctx.createRadialGradient(px, py, 10, px, py, coneLen);
+      grad.addColorStop(0, "rgba(0,0,0,0.98)");
+      grad.addColorStop(0.75, "rgba(0,0,0,0.65)");
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+
+      lctx.fillStyle = grad;
+      lctx.beginPath();
+      lctx.moveTo(px, py);
+      lctx.arc(px, py, coneLen, ang - spread, ang + spread);
+      lctx.closePath();
+      lctx.fill();
+    }
+
+    if (!state.ball.held) {
+      const bx = canvas.width / 2 + (state.ball.x - state.camera.x);
+      const by = canvas.height / 2 + (state.ball.y - state.camera.y);
+      const bGrad = lctx.createRadialGradient(bx, by, 2, bx, by, 44);
+      bGrad.addColorStop(0, "rgba(0,0,0,0.65)");
+      bGrad.addColorStop(1, "rgba(0,0,0,0)");
+      lctx.fillStyle = bGrad;
+      lctx.beginPath();
+      lctx.arc(bx, by, 44, 0, Math.PI * 2);
+      lctx.fill();
+    }
+
+    ctx.drawImage(lightCanvas, 0, 0);
+
+    ctx.fillStyle = "rgba(255, 245, 225, 0.03)";
+    for (let i = 0; i < 45; i++) {
+      ctx.fillRect((Math.random() * canvas.width) | 0, (Math.random() * canvas.height) | 0, 2, 1);
+    }
+  }
+
+  function renderHUD() {
+    const room = getCurrentRoom();
+    const tokenCount = TOKENS.filter(t => t.collected).length;
+
+    ctx.fillStyle = "rgba(10, 9, 8, 0.74)";
+    ctx.fillRect(12, 12, 265, 42);
+    ctx.strokeStyle = "#3b3228";
+    ctx.strokeRect(12, 12, 265, 42);
+
+    ctx.fillStyle = "#c9ba96";
+    ctx.font = "11px Courier New";
+    ctx.textAlign = "left";
+    ctx.fillText(room.name, 20, 28);
+
+    ctx.fillStyle = "#8f826b";
+    ctx.fillText(`TOKENS: ${tokenCount}/3   BALL: ${state.ball.held ? "IN HAND" : "BOUNCING (" + state.ball.bounces + ")"}`, 20, 44);
+
+    if (state.ball.charging) {
+      const bw = 90;
+      ctx.fillStyle = "#171412";
+      ctx.fillRect(canvas.width / 2 - bw / 2, canvas.height - 46, bw, 8);
+      ctx.fillStyle = "#b84637";
+      ctx.fillRect(canvas.width / 2 - bw / 2 + 1, canvas.height - 45, (bw - 2) * state.ball.charge, 6);
+    }
+
+    if (state.toast.timer > 0) {
+      ctx.fillStyle = "rgba(12, 10, 9, 0.86)";
+      ctx.fillRect(40, canvas.height - 32, canvas.width - 80, 22);
+      ctx.strokeStyle = "#594c3c";
+      ctx.strokeRect(40, canvas.height - 32, canvas.width - 80, 22);
+      ctx.fillStyle = "#dfd2b4";
+      ctx.font = "11px Courier New";
+      ctx.textAlign = "center";
+      ctx.fillText(state.toast.text, canvas.width / 2, canvas.height - 17);
+    }
+
+    if (state.inspectTimer > 0) {
+      ctx.fillStyle = "rgba(10, 9, 8, 0.9)";
+      ctx.fillRect(60, 66, canvas.width - 120, 48);
+      ctx.strokeStyle = "#6e5d47";
+      ctx.strokeRect(60, 66, canvas.width - 120, 48);
+      ctx.fillStyle = "#d4c7ab";
+      ctx.font = "11px Courier New";
+      ctx.textAlign = "left";
+      wrapText(state.inspectText, 72, 83, canvas.width - 144, 15);
+    }
+
+    if (state.showNotebook) {
+      ctx.fillStyle = "rgba(8, 7, 6, 0.94)";
+      ctx.fillRect(54, 34, canvas.width - 108, canvas.height - 68);
+      ctx.strokeStyle = "#6e5d47";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(54, 34, canvas.width - 108, canvas.height - 68);
+
+      ctx.fillStyle = "#d9c89e";
+      ctx.font = "13px Georgia";
+      ctx.textAlign = "left";
+      ctx.fillText("WONDERLAND PLAYHOUSE — COLLECTED MEMOS & CLUES [TAB TO CLOSE]", 72, 56);
+
+      let y = 78;
+      for (const n of NOTES) {
+        ctx.fillStyle = n.collected ? "#cbb889" : "#574e41";
+        ctx.font = "11px Courier New";
+        ctx.fillText(n.collected ? n.title : "[UNREAD MEMO — EXPLORE THE PLAYHOUSE]", 72, y);
+        y += 14;
+        if (n.collected) {
+          ctx.fillStyle = "#aba089";
+          y = wrapText(n.body, 78, y, canvas.width - 160, 13) + 8;
+        } else {
+          y += 8;
+        }
+      }
+    }
+  }
+
+  function wrapText(text, x, y, maxWidth, lineHeight) {
+    const words = text.split(" ");
+    let line = "";
+    for (let i = 0; i < words.length; i++) {
+      const test = line + words[i] + " ";
+      if (ctx.measureText(test).width > maxWidth && i > 0) {
+        ctx.fillText(line, x, y);
+        line = words[i] + " ";
+        y += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line, x, y);
+    return y + lineHeight;
+  }
+
+  let lastTime = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
+    if (state.phase === "playing") {
+      state.time += dt;
+      if (state.toast.timer > 0) state.toast.timer -= dt;
+      if (state.inspectTimer > 0) state.inspectTimer -= dt;
+
+      updatePlayer(dt);
+      updateBall(dt);
+      updateMascotsAndHorror(dt);
+      audio.update(dt, state.tension, getCurrentRoom().id, state.shiftProgress);
+    }
+
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
